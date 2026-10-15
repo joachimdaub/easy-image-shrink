@@ -23,12 +23,11 @@
   function readOptions() {
     const width = Number(widthInput.value);
     if (!Number.isInteger(width) || width < 320 || width > 4000) throw new Error('Breite muss zwischen 320 und 4000 Pixel liegen.');
-    const q = qualityInput.value in qualities ? qualityInput.value : 'medium';
+    const q = Object.hasOwn(qualities, qualityInput.value) ? qualityInput.value : 'medium';
     const format = ['original', 'webp', 'jpg', 'png'].includes(formatInput.value) ? formatInput.value : 'original';
     return { width, q, quality: qualities[q], format };
   }
 
-  // Token remains in the URL, and can be bookmarked/shared with trusted customers.
   function updateUrl() {
     try {
       const o = readOptions();
@@ -41,6 +40,14 @@
       setStatus('Bereit.');
     } catch (e) { setStatus(e.message, true); }
   }
+  // Initialize controls from optional URL parameters, using safe defaults for invalid values.
+  const params = new URLSearchParams(location.search);
+  const initialWidth = Number(params.get('w'));
+  if (Number.isInteger(initialWidth) && initialWidth >= 320 && initialWidth <= 4000) widthInput.value = String(initialWidth);
+  const initialQuality = params.get('q');
+  if (Object.hasOwn(qualities, initialQuality)) qualityInput.value = initialQuality;
+  const initialFormat = params.get('format');
+  if (['original', 'webp', 'jpg', 'png'].includes(initialFormat)) formatInput.value = initialFormat;
   widthInput.addEventListener('change', updateUrl);
   qualityInput.addEventListener('change', updateUrl);
   formatInput.addEventListener('change', updateUrl);
