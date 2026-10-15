@@ -5,11 +5,12 @@ Eine minimale, selbst hostbare Bildverkleinerung für Kunden. **Keine Bild-Uploa
 ## Funktionen
 
 - Bilder per Drag & Drop oder Dateiauswahl hinzufügen – **Verarbeitung und Download starten automatisch**
-- Ein Bild → WebP-Download; mehrere Bilder → ZIP-Datei
+- Ein Bild → Download im Originalformat (standardmäßig); mehrere Bilder → ZIP-Datei
 - Breite in Pixeln (`w=1200`) und Qualität (`q=high|medium|low`) über URL **oder direkt im Formular**
 - Seitenverhältnis bleibt erhalten; kleine Bilder werden nicht hochskaliert; **kein Zuschnitt**
-- Browser-Komprimierung zu WebP, bei fehlendem WebP-Encoder PNG-Fallback
-- SVG-Eingaben werden als statisches Bild gerastert (Ausgabe WebP bzw. PNG); aktive Inhalte und externe Verweise werden aus Sicherheitsgründen entfernt. SVG-Animationen, verlinkte Bilder, Stylesheets und CSS-basierte SVG-Designs werden nicht vollständig unterstützt.
+- Ausgabeformat optional über `format=original|webp|jpg|png`; Standard `original` (JPG bleibt JPG, PNG bleibt PNG, WebP bleibt WebP)
+- JPEG/WebP werden mit der gewählten Qualität kodiert; PNG wird über Canvas neu kodiert (die Qualitätsstufe beeinflusst PNG nicht).
+- SVG bleibt mit `format=original` SVG (Vektorformat, keine Pixelbreitenbegrenzung); bei explizitem Rasterformat wird es konvertiert. Aktive Inhalte und externe Verweise werden aus Sicherheitsgründen entfernt. SVG-Animationen und CSS-basierte SVG-Designs werden nicht vollständig unterstützt.
 - Kein Framework, keine Datenbank, keine externen Bibliotheken, kein Build-Schritt, kein CDN
 - Server benötigt nur PHP 7.4+ zum Prüfen des Tokens; Browser benötigt aktuelle Canvas-, Blob- und Download-Unterstützung
 
@@ -35,8 +36,9 @@ Eine minimale, selbst hostbare Bildverkleinerung für Kunden. **Keine Bild-Uploa
 | `token` | Geheimer Token aus `config.local.php` | erforderlich |
 | `w` | Ganze Zahl 320–4000 | `1200` |
 | `q` | `high`, `medium`, `low` | `medium` |
+| `format` | `original`, `webp`, `jpg`, `png` | `original` |
 
-Die Qualität verwendet WebP-Encoderwerte 0,92 / 0,82 / 0,68. Das ist **visuell verlustbehaftete** Komprimierung, nicht pixelgenau verlustfrei. Breite und Qualität sind in der Oberfläche anpassbar; die URL wird entsprechend aktualisiert.
+Die Qualität verwendet Canvas-Encoderwerte 0,92 / 0,82 / 0,68 für JPEG/WebP (bei PNG nicht wirksam). Das ist **visuell verlustbehaftete** Komprimierung, nicht pixelgenau verlustfrei. Breite und Qualität sind in der Oberfläche anpassbar; die URL wird entsprechend aktualisiert.
 
 ## Einschränkungen
 
@@ -44,7 +46,7 @@ Die Qualität verwendet WebP-Encoderwerte 0,92 / 0,82 / 0,68. Das ist **visuell 
 - Wer den Token-Link besitzt, kann die Seite öffnen. Token können in Browser-Verlauf, Logfiles und bei unsachgemäßer Weitergabe auftauchen. `Referrer-Policy: no-referrer` verhindert den Token-Versand als Referrer. Bei Bedarf Token ändern.
 - Kein serverseitiger Bild-Upload und keine Speicherung auf dem Webspace.
 - Maximal 50 Dateien je Durchlauf, 40 MB je Datei und 80 Millionen Pixel je Quellbild (Speicherschutz; auf schwachen Geräten können geringere Grenzen nötig sein).
-- ZIP nutzt die STORE-Methode (ohne zusätzliche Komprimierung), da WebP/PNG bereits komprimiert sind.
+- ZIP nutzt die STORE-Methode (ohne zusätzliche ZIP-Komprimierung).
 - Je nach Browser kann ein automatisch ausgelöster Download blockiert sein; dann ist ein manueller Downloadlink verfügbar.
 - Manche Handybilder enthalten Metadaten wie EXIF-Ausrichtung. Moderne Browser berücksichtigen sie meist beim Dekodieren; bei exotischen Formaten/Browsern bitte prüfen.
 - Der Browser kodiert neu. Schon stark optimierte Bilder können dadurch *größer* werden; eine garantierte Größenreduktion gibt es nicht.
