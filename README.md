@@ -6,7 +6,7 @@ Eine minimale, selbst hostbare Bildverkleinerung für Kunden. **Keine Bild-Uploa
 
 - Bilder per Drag & Drop oder Dateiauswahl hinzufügen – **Verarbeitung und Download starten automatisch**
 - Ein Bild → Download im Originalformat (standardmäßig); mehrere Bilder → ZIP-Datei
-- Breite in Pixeln (`w=1200`) und Qualität (`q=high|medium|low`) über URL **oder direkt im Formular**
+- Breite in Pixeln (`w=1920`) und Qualität (`q=high|medium|low`) über URL **oder direkt im Formular**
 - Seitenverhältnis bleibt erhalten; Bilder werden nie über die Originalbreite hochskaliert; **kein Zuschnitt**
 - Ist die optimierte Datei größer als das Original, wird sie nicht heruntergeladen. Stattdessen erscheint ein Fehler mit dem Hinweis, Breite oder Qualität zu reduzieren (bei PNG/SVG-Originalformat ist Qualität nicht wirksam).
 - Ausgabeformat optional über `format=original|webp|jpg|png`; Standard `original` (JPG bleibt JPG, PNG bleibt PNG, WebP bleibt WebP)
@@ -19,7 +19,7 @@ Eine minimale, selbst hostbare Bildverkleinerung für Kunden. **Keine Bild-Uploa
 
 1. Repository-Inhalt auf einen beliebigen statischen Webspace kopieren oder über GitHub Pages ausliefern.
 2. `index.html` im Browser aufrufen, zum Beispiel:
-   `https://bilder.example.de/?w=1200&q=medium`
+   `https://bilder.example.de/?w=1920&q=medium`
 3. HTTPS ist für öffentliches Hosting empfehlenswert.
 
 Es gibt keine Zugangsbeschränkung. Die Dateien können öffentlich aufgerufen werden, aber Bilder werden ausschließlich lokal im Browser verarbeitet.
@@ -28,7 +28,7 @@ Es gibt keine Zugangsbeschränkung. Die Dateien können öffentlich aufgerufen w
 
 | Parameter | Werte | Standard |
 |---|---|---|
-| `w` | Ganze Zahl 320–4000 | `1200` |
+| `w` | Ganze Zahl 320–4000 | `1920` |
 | `q` | `high`, `medium`, `low` | `medium` |
 | `format` | `original`, `webp`, `jpg`, `png` | `original` |
 
@@ -48,7 +48,7 @@ Die Qualität verwendet Canvas-Encoderwerte 0,92 / 0,82 / 0,68 für JPEG/WebP (b
 
 ```sh
 python -m http.server 8080
-# http://127.0.0.1:8080/?w=1200&q=medium
+# http://127.0.0.1:8080/?w=1920&q=medium
 ```
 
 Alternativ `index.html` direkt im Browser öffnen. JS-Syntax: `node --check assets/app.js`.
