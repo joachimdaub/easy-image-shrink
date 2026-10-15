@@ -8,6 +8,7 @@
   const results = $('results');
   const widthInput = $('width');
   const qualityInput = $('quality');
+  const formatInput = $('format');
   const qualities = Object.freeze({ high: 0.92, medium: 0.82, low: 0.68 });
   const MAX_FILES = 50;
   const MAX_FILE_BYTES = 40 * 1024 * 1024;
@@ -23,7 +24,8 @@
     const width = Number(widthInput.value);
     if (!Number.isInteger(width) || width < 320 || width > 4000) throw new Error('Breite muss zwischen 320 und 4000 Pixel liegen.');
     const q = qualityInput.value in qualities ? qualityInput.value : 'medium';
-    return { width, q, quality: qualities[q] };
+    const format = ['original', 'webp', 'jpg', 'png'].includes(formatInput.value) ? formatInput.value : 'original';
+    return { width, q, quality: qualities[q], format };
   }
 
   // Token remains in the URL, and can be bookmarked/shared with trusted customers.
@@ -33,12 +35,15 @@
       const url = new URL(location.href);
       url.searchParams.set('w', String(o.width));
       url.searchParams.set('q', o.q);
+      if (o.format === 'original') url.searchParams.delete('format');
+      else url.searchParams.set('format', o.format);
       history.replaceState(null, '', url);
       setStatus('Bereit.');
     } catch (e) { setStatus(e.message, true); }
   }
   widthInput.addEventListener('change', updateUrl);
   qualityInput.addEventListener('change', updateUrl);
+  formatInput.addEventListener('change', updateUrl);
 
   async function prepareSvg(file) {
     // Never pass arbitrary active SVG markup directly to the browser decoder.
@@ -82,9 +87,18 @@
     return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Bild konnte nicht konvertiert werden.')), type, quality));
   }
   async function optimize(file, options) {
-    const isSvg = file.type === 'image/svg+xml' || (!file.type && /\.svg$/i.test(file.name));
-    if (!types.has(file.type) && !isSvg) throw new Error(`Nicht unterstützter Bildtyp: ${file.name}`);
+    const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
+    const sourceType = isSvg ? 'image/svg+xml' : file.type;
+    if (!types.has(sourceType)) throw new Error(`Nicht unterstützter Bildtyp: ${file.name}`);
     if (file.size > MAX_FILE_BYTES) throw new Error(`Datei zu groß (maximal 40 MB): ${file.name}`);
+
+    // SVG is vector-based: preserve the original format and proportions.
+    // Keep the sanitization step, to avoid passing active content to the decoder/download.
+    if (isSvg && options.format === 'original') {
+      const blob = await prepareSvg(file);
+      return { name: `${safeBase(file.name)}.svg`, blob, originalSize: file.size };
+    }
+
     const image = await loadImage(isSvg ? await prepareSvg(file) : file);
     if (!image.naturalWidth || !image.naturalHeight) throw new Error(`Bild ohne gültige Abmessungen: ${file.name}`);
     if (image.naturalWidth * image.naturalHeight > MAX_PIXELS) throw new Error(`Bildauflösung zu groß: ${file.name}`);
@@ -96,13 +110,25 @@
     if (!ctx) throw new Error('Bildverarbeitung wird in diesem Browser nicht unterstützt.');
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
+
+    let format = options.format;
+    if (format === 'original') {
+      format = sourceType === 'image/jpeg' ? 'jpg' : sourceType === 'image/png' ? 'png' : 'webp';
+    }
+    const mime = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }[format];
+    if (!mime) throw new Error(`Unbekanntes Ausgabeformat: ${format}`);
+
+    // JPEG has no transparency; fill the canvas white instead of producing black backgrounds.
+    if (format === 'jpg') {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    let blob = await encode(canvas, 'image/webp', options.quality);
-    // If WebP encoding is unsupported, fall back to PNG so transparency is preserved.
-    let ext = 'webp';
-    if (blob.type !== 'image/webp') { blob = await encode(canvas, 'image/png'); ext = 'png'; }
+    const blob = await encode(canvas, mime, options.quality);
     canvas.width = canvas.height = 0;
-    return { name: `${safeBase(file.name)}.${ext}`, blob, originalSize: file.size };
+    // Canvas may silently fall back to PNG if the requested encoder is unavailable.
+    if (blob.type !== mime) throw new Error(`Dieser Browser unterstützt die Ausgabe als ${format.toUpperCase()} nicht.`);
+    return { name: `${safeBase(file.name)}.${format}`, blob, originalSize: file.size };
   }
 
   function download(blob, name) {
