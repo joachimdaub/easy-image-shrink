@@ -103,6 +103,7 @@
     // Keep the sanitization step, to avoid passing active content to the decoder/download.
     if (isSvg && options.format === 'original') {
       const blob = await prepareSvg(file);
+      if (blob.size > file.size) throw new Error(`${file.name}: Die optimierte Datei wäre größer als das Original (${bytes(blob.size)} statt ${bytes(file.size)}). Bitte Breite oder Qualität reduzieren; bei SVG sind diese Einstellungen im Originalformat nicht wirksam.`);
       return { name: `${safeBase(file.name)}-optimiert.svg`, blob, originalSize: file.size };
     }
 
@@ -135,6 +136,7 @@
     canvas.width = canvas.height = 0;
     // Canvas may silently fall back to PNG if the requested encoder is unavailable.
     if (blob.type !== mime) throw new Error(`Dieser Browser unterstützt die Ausgabe als ${format.toUpperCase()} nicht.`);
+    if (blob.size > file.size) throw new Error(`${file.name}: Die optimierte Datei wäre größer als das Original (${bytes(blob.size)} statt ${bytes(file.size)}). Bitte maximale Breite oder Qualität reduzieren${format === 'png' ? ' (bei PNG hat die Qualitätseinstellung keinen Einfluss)' : ''}.`);
     return { name: `${safeBase(file.name)}-optimiert.${format}`, blob, originalSize: file.size };
   }
 
