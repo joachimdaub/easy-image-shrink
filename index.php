@@ -30,6 +30,7 @@ function queryChoice(string $name, array $allowed, string $default): string {
 }
 $width = queryChoice('w', array_map('strval', range(320, 4000)), '1200');
 $quality = queryChoice('q', ['high', 'medium', 'low'], 'medium');
+$format = queryChoice('format', ['original', 'webp', 'jpg', 'png'], 'original');
 ?>
 <!doctype html>
 <html lang="de">
@@ -56,6 +57,14 @@ $quality = queryChoice('q', ['high', 'medium', 'low'], 'medium');
           <option value="high" <?= $quality === 'high' ? 'selected' : '' ?>>Hoch</option>
           <option value="medium" <?= $quality === 'medium' ? 'selected' : '' ?>>Mittel</option>
           <option value="low" <?= $quality === 'low' ? 'selected' : '' ?>>Niedrig</option>
+        </select>
+      </label>
+      <label for="format">Ausgabeformat
+        <select id="format">
+          <option value="original" <?= $format === 'original' ? 'selected' : '' ?>>Originalformat</option>
+          <option value="webp" <?= $format === 'webp' ? 'selected' : '' ?>>WebP</option>
+          <option value="jpg" <?= $format === 'jpg' ? 'selected' : '' ?>>JPG</option>
+          <option value="png" <?= $format === 'png' ? 'selected' : '' ?>>PNG</option>
         </select>
       </label>
     </section>
