@@ -7,7 +7,8 @@ Eine minimale, selbst hostbare Bildverkleinerung für Kunden. **Keine Bild-Uploa
 - Bilder per Drag & Drop oder Dateiauswahl hinzufügen – **Verarbeitung und Download starten automatisch**
 - Ein Bild → Download im Originalformat (standardmäßig); mehrere Bilder → ZIP-Datei
 - Breite in Pixeln (`w=1200`) und Qualität (`q=high|medium|low`) über URL **oder direkt im Formular**
-- Seitenverhältnis bleibt erhalten; kleine Bilder werden nicht hochskaliert; **kein Zuschnitt**
+- Seitenverhältnis bleibt erhalten; Bilder werden nie über die Originalbreite hochskaliert; **kein Zuschnitt**
+- Ist die optimierte Datei größer als das Original, wird sie nicht heruntergeladen. Stattdessen erscheint ein Fehler mit dem Hinweis, Breite oder Qualität zu reduzieren (bei PNG/SVG-Originalformat ist Qualität nicht wirksam).
 - Ausgabeformat optional über `format=original|webp|jpg|png`; Standard `original` (JPG bleibt JPG, PNG bleibt PNG, WebP bleibt WebP)
 - JPEG/WebP werden mit der gewählten Qualität kodiert; PNG wird über Canvas neu kodiert (die Qualitätsstufe beeinflusst PNG nicht).
 - SVG bleibt mit `format=original` SVG (Vektorformat, keine Pixelbreitenbegrenzung); bei explizitem Rasterformat wird es konvertiert. Aktive Inhalte und externe Verweise werden aus Sicherheitsgründen entfernt. SVG-Animationen und CSS-basierte SVG-Designs werden nicht vollständig unterstützt.
