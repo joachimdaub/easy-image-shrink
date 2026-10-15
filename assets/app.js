@@ -96,7 +96,7 @@
     // Keep the sanitization step, to avoid passing active content to the decoder/download.
     if (isSvg && options.format === 'original') {
       const blob = await prepareSvg(file);
-      return { name: `${safeBase(file.name)}.svg`, blob, originalSize: file.size };
+      return { name: `${safeBase(file.name)}-optimiert.svg`, blob, originalSize: file.size };
     }
 
     const image = await loadImage(isSvg ? await prepareSvg(file) : file);
@@ -128,7 +128,7 @@
     canvas.width = canvas.height = 0;
     // Canvas may silently fall back to PNG if the requested encoder is unavailable.
     if (blob.type !== mime) throw new Error(`Dieser Browser unterstützt die Ausgabe als ${format.toUpperCase()} nicht.`);
-    return { name: `${safeBase(file.name)}.${format}`, blob, originalSize: file.size };
+    return { name: `${safeBase(file.name)}-optimiert.${format}`, blob, originalSize: file.size };
   }
 
   function download(blob, name) {
