@@ -91,7 +91,17 @@
     });
   }
   function encode(canvas, type, quality) {
-    return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Bild konnte nicht konvertiert werden.')), type, quality));
+    return new Promise((resolve, reject) => {
+      try {
+        if (typeof canvas.toBlob !== 'function') {
+          reject(new Error('Dieser Browser unterstützt die Bildausgabe über Canvas nicht.'));
+          return;
+        }
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Bild konnte nicht konvertiert werden. Bitte eine kleinere Breite wählen.')), type, quality);
+      } catch (error) {
+        reject(new Error('Die Bildverarbeitung ist fehlgeschlagen. Bitte eine kleinere Breite wählen oder ein anderes Ausgabeformat ausprobieren.'));
+      }
+    });
   }
   async function optimize(file, options) {
     const isSvg = file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
@@ -132,10 +142,11 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const blob = await encode(canvas, mime, options.quality);
-    canvas.width = canvas.height = 0;
+    let blob;
+    try { blob = await encode(canvas, mime, options.quality); }
+    finally { canvas.width = canvas.height = 0; }
     // Canvas may silently fall back to PNG if the requested encoder is unavailable.
-    if (blob.type !== mime) throw new Error(`Dieser Browser unterstützt die Ausgabe als ${format.toUpperCase()} nicht.`);
+    if (blob.type !== mime) throw new Error(`${file.name}: Dieser Browser unterstützt die Ausgabe als ${format.toUpperCase()} nicht. Bitte ein anderes Ausgabeformat (z. B. JPG) auswählen. Es erfolgt keine automatische Formatänderung.`);
     if (blob.size > file.size) throw new Error(`${file.name}: Die optimierte Datei wäre größer als das Original (${bytes(blob.size)} statt ${bytes(file.size)}). Bitte maximale Breite oder Qualität reduzieren${format === 'png' ? ' (bei PNG hat die Qualitätseinstellung keinen Einfluss)' : ''}.`);
     return { name: `${safeBase(file.name)}-optimiert.${format}`, blob, originalSize: file.size };
   }
