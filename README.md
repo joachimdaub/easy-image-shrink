@@ -85,9 +85,9 @@ Please test changes in current Chromium, Firefox, and Safari browsers, including
 
 ## Manual testing status
 
-The maintainer has confirmed successful multiple-image uploads and processing in Firefox and Safari, including automatic downloads in Safari. Exact browser versions and operating systems were not recorded. These are manual checks, not an automated cross-browser test suite.
+The maintainer has confirmed successful multiple-image uploads and processing in Firefox, Safari, Chrome, and Edge, including automatic downloads in Safari. Exact browser versions and operating systems were not recorded. These are manual checks, not an automated cross-browser test suite.
 
-Chrome/Edge verification and a dedicated security review of SVG handling remain outstanding.
+A dedicated security review of SVG handling remains outstanding.
 
 ## License
 
