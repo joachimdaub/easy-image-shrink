@@ -1,58 +1,88 @@
 # Easy Image Shrink
 
-Eine minimale, selbst hostbare Bildverkleinerung für Kunden. **Keine Bild-Uploads:** Alles wird im Browser verarbeitet. Die Anwendung besteht ausschließlich aus HTML, CSS und JavaScript – ohne Serververarbeitung.
+A tiny, self-hostable browser-based image resizer for non-technical users. Drop images onto the page and downloads start automatically. **Images never leave the device.**
 
-## Funktionen
+No backend, database, framework, third-party dependencies, build step, or CDN.
 
-- Bilder per Drag & Drop oder Dateiauswahl hinzufügen – **Verarbeitung und Download starten automatisch**
-- Ein Bild → Download im Originalformat (standardmäßig); mehrere Bilder → ZIP-Datei
-- Breite in Pixeln (`w=1920`) und Qualität (`q=high|medium|low`) über URL **oder direkt im Formular**
-- Seitenverhältnis bleibt erhalten; Bilder werden nie über die Originalbreite hochskaliert; **kein Zuschnitt**
-- Ist die optimierte Datei größer als das Original, wird sie nicht heruntergeladen. Stattdessen erscheint ein Fehler mit dem Hinweis, Breite oder Qualität zu reduzieren (bei PNG/SVG-Originalformat ist Qualität nicht wirksam).
-- Ausgabeformat optional über `format=original|webp|jpg|png`; Standard `original` (JPG bleibt JPG, PNG bleibt PNG, WebP bleibt WebP)
-- JPEG/WebP werden mit der gewählten Qualität kodiert; PNG wird über Canvas neu kodiert (die Qualitätsstufe beeinflusst PNG nicht).
-- SVG bleibt mit `format=original` SVG (Vektorformat, keine Pixelbreitenbegrenzung); bei explizitem Rasterformat wird es konvertiert. Aktive Inhalte und externe Verweise werden aus Sicherheitsgründen entfernt. SVG-Animationen und CSS-basierte SVG-Designs werden nicht vollständig unterstützt.
-- Kein Framework, keine Datenbank, keine externen Bibliotheken, kein Build-Schritt, kein CDN
-- Kein PHP erforderlich; Browser benötigt aktuelle Canvas-, Blob- und Download-Unterstützung
+## Features
 
-## Installation
+- Drag and drop or select images; conversion starts immediately
+- One successful image: direct download; multiple successful images: one ZIP
+- Defaults: maximum width **1920 px**, quality **medium**, output format **original**
+- Preserve aspect ratio; **never upscale** smaller images; no cropping
+- Reject outputs larger than their source file and suggest reducing width or quality
+- Keep original format (JPEG, PNG, WebP, SVG) by default, or choose JPEG/PNG/WebP output
+- Append `-optimiert` to filenames (e.g. `photo-optimiert.jpg`)
+- Editable controls with URL parameter support; no uploads or data storage
+- Simple ZIP writer with no dependencies
 
-1. Repository-Inhalt auf einen beliebigen statischen Webspace kopieren oder über GitHub Pages ausliefern.
-2. `index.html` im Browser aufrufen, zum Beispiel:
-   `https://bilder.example.de/?w=1920&q=medium`
-3. HTTPS ist für öffentliches Hosting empfehlenswert.
+## Quick start
 
-Es gibt keine Zugangsbeschränkung. Die Dateien können öffentlich aufgerufen werden, aber Bilder werden ausschließlich lokal im Browser verarbeitet.
+Copy `index.html` and the `assets/` folder to any static web host, including basic/free hosting.
 
-### URL-Parameter
+Open `https://your-site.example/?w=1920&q=medium`.
 
-| Parameter | Werte | Standard |
-|---|---|---|
-| `w` | Ganze Zahl 320–4000 | `1920` |
-| `q` | `high`, `medium`, `low` | `medium` |
-| `format` | `original`, `webp`, `jpg`, `png` | `original` |
-
-Die Qualität verwendet Canvas-Encoderwerte 0,92 / 0,82 / 0,68 für JPEG/WebP (bei PNG nicht wirksam). Das ist **visuell verlustbehaftete** Komprimierung, nicht pixelgenau verlustfrei. Breite und Qualität sind in der Oberfläche anpassbar; die URL wird entsprechend aktualisiert.
-
-## Einschränkungen
-
-- Kein serverseitiger Bild-Upload und keine Speicherung auf dem Webspace.
-- Maximal 50 Dateien je Durchlauf, 40 MB je Datei und 80 Millionen Pixel je Quellbild (Speicherschutz; auf schwachen Geräten können geringere Grenzen nötig sein).
-- ZIP nutzt die STORE-Methode (ohne zusätzliche ZIP-Komprimierung).
-- Je nach Browser kann ein automatisch ausgelöster Download blockiert sein; dann ist ein manueller Downloadlink verfügbar.
-- Manche Handybilder enthalten Metadaten wie EXIF-Ausrichtung. Moderne Browser berücksichtigen sie meist beim Dekodieren; bei exotischen Formaten/Browsern bitte prüfen.
-- Der Browser kodiert neu. Schon stark optimierte Bilder können dadurch *größer* werden; eine garantierte Größenreduktion gibt es nicht.
-- Metadaten wie GPS/EXIF werden beim Neuzeichnen über Canvas normalerweise entfernt.
-
-## Lokal testen
+For local testing:
 
 ```sh
-python -m http.server 8080
-# http://127.0.0.1:8080/?w=1920&q=medium
+python3 -m http.server 8080
+# Visit http://localhost:8080/
 ```
 
-Alternativ `index.html` direkt im Browser öffnen. JS-Syntax: `node --check assets/app.js`.
+You can also open `index.html` directly in a modern browser. The user interface is currently in German.
 
-## Sicherheit und Lizenz
+## Configuration
 
-Keine Sessions, Cookies, Uploads oder POST-Requests. Die lokale Bildverarbeitung benötigt keine Netzwerkzugriffe. MIT-Lizenz, siehe [LICENSE](LICENSE).
+All URL parameters are optional. Controls on the page also let users change these settings.
+
+| Parameter | Allowed values | Default |
+| --- | --- | --- |
+| `w` | Integer 320–4000 (maximum width in pixels) | `1920` |
+| `q` | `high`, `medium`, `low` | `medium` |
+| `format` | `original`, `jpg`, `png`, `webp` | `original` |
+
+Example: `https://your-site.example/?w=1200&q=high&format=webp`
+
+JPEG and WebP use browser Canvas quality settings 0.92 / 0.82 / 0.68. These are **lossy** encodings, not mathematically lossless. Canvas PNG output ignores the quality setting. A file larger than its source is rejected, not downloaded.
+
+## Supported formats and caveats
+
+| Input | Default output | Notes |
+| --- | --- | --- |
+| JPEG | JPEG | Re-encoded; embedded metadata is typically removed |
+| PNG | PNG | Lossless Canvas output, but file size may grow |
+| WebP | WebP | Encoding depends on browser support |
+| SVG | SVG | Sanitized vector content; width/quality do not apply in original mode |
+
+Explicit `format=jpg|png|webp` rasterizes SVG. The SVG sanitizer deliberately removes active and external content and may alter complex artwork; **do not rely on it as a general-purpose SVG sanitizer for untrusted distribution**. SVG animations and some CSS-based designs are not preserved.
+
+Other limitations:
+
+- Up to 50 files per batch, 40 MiB per file, and 80 million source pixels
+- Browser memory, Canvas dimensions, format encoders, and automatic download policies vary (particularly on mobile Safari)
+- If an encoder cannot produce the requested format, conversion fails with a message instead of silently changing formats
+- Automatic downloads may be blocked; manual links remain available
+- ZIP files use STORE (no additional ZIP compression)
+- For raster files, re-encoding generally strips EXIF/GPS metadata; test orientation handling on your target browsers
+- SVG original-mode output can become larger due to sanitization; in that case the output is rejected
+- No guarantee of size reduction for already optimized images
+
+## Privacy and security
+
+Image pixels are processed locally by browser APIs; the app does not upload images or call a remote image optimization service. There are no authentication tokens, cookies, accounts, or backend. Hosting requests for the static application files still appear in normal hosting logs. Serve it over HTTPS.
+
+See [SECURITY.md](SECURITY.md) for vulnerability reports and [CONTRIBUTING.md](CONTRIBUTING.md) for contributions.
+
+## Development
+
+There is no package manager or build process. Run:
+
+```sh
+node --check assets/app.js
+```
+
+Please test changes in current Chromium, Firefox, and Safari browsers, including single and ZIP downloads. Browser behavior has not been comprehensively verified across platforms yet.
+
+## License
+
+[MIT](LICENSE).
