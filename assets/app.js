@@ -52,33 +52,53 @@
   qualityInput.addEventListener('change', updateUrl);
   formatInput.addEventListener('change', updateUrl);
 
+  // Restrictive SVG policy: no CSS, references, namespaces, scripts, or external resources.
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const SVG_TAGS = new Set(['svg', 'g', 'defs', 'path', 'rect', 'circle', 'ellipse',
+    'line', 'polyline', 'polygon', 'text', 'tspan', 'linearGradient', 'radialGradient', 'stop']);
+  const SVG_ATTRS = new Set(['xmlns', 'viewBox', 'width', 'height', 'x', 'y', 'x1', 'y1',
+    'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'd', 'points', 'fill', 'fill-opacity',
+    'stroke', 'stroke-width', 'stroke-opacity', 'stroke-linecap', 'stroke-linejoin',
+    'stroke-dasharray', 'stroke-dashoffset', 'opacity', 'transform', 'preserveAspectRatio',
+    'offset', 'stop-color', 'stop-opacity', 'font-size', 'font-family', 'font-weight',
+    'text-anchor', 'dominant-baseline', 'gradientUnits', 'gradientTransform', 'spreadMethod']);
+  const SVG_COLORS = new Set(['none', 'currentcolor', 'transparent', 'inherit']);
+
   async function prepareSvg(file) {
-    // Never pass arbitrary active SVG markup directly to the browser decoder.
-    // This tool supports static vector drawings, not scripts or linked assets.
+    if (file.size > 1024 * 1024) throw new Error(`SVG zu groß: ${file.name} (maximal 1 MB).`);
     const xml = await file.text();
+    if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw new Error(`Unsichere SVG-Deklaration: ${file.name}`);
     const doc = new DOMParser().parseFromString(xml, 'image/svg+xml');
     const root = doc.documentElement;
-    if (root.localName !== 'svg' || root.namespaceURI !== 'http://www.w3.org/2000/svg' || doc.querySelector('parsererror')) {
+    if (!root || root.localName !== 'svg' || root.namespaceURI !== SVG_NS || doc.getElementsByTagName('parsererror').length) {
       throw new Error(`Ungültige SVG-Datei: ${file.name}`);
     }
-    const blocked = new Set(['script', 'foreignObject', 'image', 'use', 'a', 'iframe', 'audio', 'video', 'animate', 'animateMotion', 'animateTransform', 'set', 'style']);
-    for (const el of [...root.querySelectorAll('*')]) {
-      if (blocked.has(el.localName) || el.namespaceURI !== 'http://www.w3.org/2000/svg') {
-        el.remove();
-        continue;
+    const elements = [root, ...root.getElementsByTagName('*')];
+    if (elements.length > 10000) throw new Error(`Zu komplexe SVG-Datei: ${file.name}`);
+    const safe = doc.implementation.createDocument(SVG_NS, 'svg', null);
+    let count = 0;
+    function copyNode(source, target, depth) {
+      if (depth > 40 || ++count > 10000) throw new Error(`Zu komplexe SVG-Datei: ${file.name}`);
+      if (source.namespaceURI !== SVG_NS || !SVG_TAGS.has(source.localName)) return;
+      const dest = depth === 0 ? target : safe.createElementNS(SVG_NS, source.localName);
+      for (const attr of source.attributes) {
+        if (attr.namespaceURI || !SVG_ATTRS.has(attr.name)) continue;
+        const value = attr.value.trim();
+        if (value.length > 4096 || /url\s*\(|@import|javascript:|data:|https?:|[#]|[<>]|[\\]|[\u0000-\u001f]/i.test(value)) continue;
+        if (['fill', 'stroke', 'stop-color'].includes(attr.name) &&
+            !(SVG_COLORS.has(value.toLowerCase()) || /^[a-zA-Z]{1,24}$/.test(value) || /^rgb(a)?\([\d\s.,%]+\)$/.test(value))) continue;
+        dest.setAttribute(attr.name, value);
       }
-    }
-    for (const el of [root, ...root.querySelectorAll('*')]) {
-      for (const attr of [...el.attributes]) {
-        const name = attr.name.toLowerCase();
-        const value = attr.value;
-        if (name.startsWith('on') || name === 'style' || name === 'href' || name.endsWith(':href') ||
-            /url\s*\(|@import|javascript:|data:|https?:|\/\//i.test(value)) {
-          el.removeAttributeNode(attr);
+      for (const child of source.childNodes) {
+        if (child.nodeType === 1) copyNode(child, dest, depth + 1);
+        else if (child.nodeType === 3 && ['text', 'tspan'].includes(source.localName)) {
+          dest.appendChild(safe.createTextNode(child.nodeValue.slice(0, 4096)));
         }
       }
+      if (depth !== 0) target.appendChild(dest);
     }
-    return new Blob([new XMLSerializer().serializeToString(root)], { type: 'image/svg+xml' });
+    copyNode(root, safe.documentElement, 0);
+    return new Blob([new XMLSerializer().serializeToString(safe)], { type: 'image/svg+xml' });
   }
 
   function loadImage(file) {
